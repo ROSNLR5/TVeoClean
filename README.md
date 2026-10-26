@@ -1,4 +1,3 @@
-[README.md](https://github.com/user-attachments/files/33980830/README.md)
 <h1 align="center">TVeoClean</h1>
 
 <p align="center">
