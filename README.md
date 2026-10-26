@@ -1,3 +1,4 @@
+
 <h1 align="center">TVeoClean</h1>
 
 <p align="center">
@@ -31,6 +32,10 @@ El proyecto reúne en una misma aplicación herramientas para inspeccionar el di
 Una parte central del proyecto es su sistema de paquetes comunitarios: el usuario podrá importar temas, ajustes y perfiles desde repositorios de GitHub, revisar su contenido y decidir qué aplicar, sin confiar ciegamente en un enlace externo.
 
 > **Estado del proyecto:** TVeoClean está en desarrollo activo. Este repositorio contiene código de la aplicación y de sus componentes principales, pero la compatibilidad, la estabilidad y la seguridad de cada operación deben seguir validándose con pruebas en dispositivos reales. Las funciones descritas aquí representan el alcance del proyecto y no equivalen a una certificación de compatibilidad para todos los televisores.
+
+<p align="center">
+  <img src="docs/images/TVeoClean.gif" width="800" alt="Demostración animada de TVeoClean">
+</p>
 
 ## 🎯 Objetivos del proyecto
 
