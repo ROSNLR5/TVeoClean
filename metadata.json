@@ -1,0 +1,6 @@
+{
+  "name": "TVeoClean",
+  "description": "Centro de control seguro para analizar, limpiar de forma reversible y personalizar televisores Android TV y Google TV por ADB local, con Style Studio e importador GitHub fijado a commit SHA.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

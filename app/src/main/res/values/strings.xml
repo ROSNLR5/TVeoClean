@@ -1,0 +1,87 @@
+<resources>
+    <string name="app_name">TVeoClean</string>
+    <string name="app_tagline">Centro de control seguro para tu televisor</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">Inicio</string>
+    <string name="nav_my_tv">Mi TV</string>
+    <string name="nav_studio">Style Studio</string>
+    <string name="nav_history">Historial</string>
+    <string name="nav_settings">Ajustes</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_skip">Omitir introducción</string>
+    <string name="onboarding_next">Siguiente</string>
+    <string name="onboarding_start">Empezar en TVeoClean</string>
+    <string name="onboarding_step1_title">1. Conecta en tu red local</string>
+    <string name="onboarding_step1_desc">Descubre tu televisor Android TV o Google TV por Wi‑Fi o introduce su IP local. Tus credenciales ADB se protegen en Android Keystore y nunca salen de casa.</string>
+    <string name="onboarding_step2_title">2. Analiza en solo lectura</string>
+    <string name="onboarding_step2_desc">Inspecciona el estado real, paquetes instalados y capacidades verificadas sin modificar absolutamente nada antes de tu confirmación explícita.</string>
+    <string name="onboarding_step3_title">3. Limpia, personaliza y revierte</string>
+    <string name="onboarding_step3_desc">Desactiva bloatware de forma reversible, crea snapshots automáticos e importa temas declarativos fijados por commit SHA desde Style Studio.</string>
+
+    <!-- Connection Status -->
+    <string name="status_disconnected">Sin TV enlazada</string>
+    <string name="status_connecting">Conectando por LAN…</string>
+    <string name="status_connected">Conectada por ADB</string>
+    <string name="status_demo_preview">Vista previa declarativa</string>
+
+    <!-- Home -->
+    <string name="home_hero_disconnected_title">Ningún televisor conectado</string>
+    <string name="home_hero_disconnected_body">Conecta un televisor Android TV o Google TV en tu red Wi‑Fi local para leer su modelo real, versión de Android y paquetes instalados. No inventamos métricas sin conexión real.</string>
+    <string name="home_cta_connect_tv">Vincular mi televisor</string>
+    <string name="home_quick_actions_title">Acciones rápidas</string>
+    <string name="home_action_analyze">Analizar mi TV</string>
+    <string name="home_action_analyze_sub_offline">Requiere conexión ADB autorizada</string>
+    <string name="home_action_studio">Style Studio</string>
+    <string name="home_action_studio_sub">Galería curada e importador GitHub</string>
+    <string name="home_action_restore">Restaurar</string>
+    <string name="home_action_restore_sub">Snapshots e historial verificados</string>
+    <string name="home_action_remote">Control remoto</string>
+    <string name="home_action_remote_sub_offline">Disponible al enlazar TV compatible</string>
+    <string name="home_verified_state_title">Estado verificado de mi TV</string>
+    <string name="home_verified_empty">Aún no se ha ejecutado ningún análisis ADB en esta sesión. Ningún paquete ni ajuste del televisor ha sido modificado.</string>
+    <string name="home_active_pack_title">Personalización activa (App móvil)</string>
+
+    <!-- My TV & Platform Honesty -->
+    <string name="mytv_title">Mi TV y Compatibilidad</string>
+    <string name="mytv_subtitle">Conexión ADB en red local, análisis de solo lectura y matriz honesta por plataforma.</string>
+    <string name="mytv_manual_connect_title">Conexión directa en red local (LAN)</string>
+    <string name="mytv_host_label">Dirección IP o host local (ej. 192.168.1.50)</string>
+    <string name="mytv_port_label">Puerto ADB</string>
+    <string name="mytv_connect_note">Fase 1 activa: la interfaz valida direcciones LAN privadas (RFC1918) y rechaza IPs públicas por seguridad. El socket ADB real con Android Keystore se habilita en la Fase 2.</string>
+    <string name="mytv_lan_security_banner">Seguridad crítica: usa ADB únicamente dentro de tu Wi‑Fi doméstica. Nunca abras el puerto 5555 en tu router hacia Internet.</string>
+    <string name="mytv_platform_matrix_title">Matriz honesta de compatibilidad</string>
+
+    <!-- Style Studio -->
+    <string name="studio_title">Style Studio</string>
+    <string name="studio_subtitle">Galería curada y gestor de paquetes declarativos tveo.json y temas heredados.</string>
+    <string name="studio_import_github">Importar de GitHub</string>
+    <string name="studio_search_hint">Buscar por nombre, autor, licencia o destino…</string>
+    <string name="studio_preview_frame_title">Vista previa en marco TV 16:9</string>
+    <string name="studio_compare_current">Actual</string>
+    <string name="studio_compare_proposed">Propuesto</string>
+    <string name="studio_target_mobile_notice">Destino: App móvil — aplica solo al aspecto local de TVeoClean, nunca modifica tu televisor.</string>
+    <string name="studio_target_tv_notice">Destino: Launcher TV — requiere televisor Android TV / Google TV conectado y snapshot previo antes de aplicar.</string>
+
+    <!-- History & Restore -->
+    <string name="history_title">Historial y Centro de Restauración</string>
+    <string name="history_subtitle">Puntos de restauración locales, verificación de integridad y registro auditable sin secretos.</string>
+    <string name="history_empty_snapshots_title">Sin snapshots registrados todavía</string>
+    <string name="history_empty_snapshots_body">Antes de desactivar un paquete o aplicar un tema de Style Studio en tu televisor, TVeoClean guarda aquí una copia íntegra verificada con SHA‑256 para revertir por diferencia.</string>
+
+    <!-- Settings & Licenses -->
+    <string name="settings_title">Ajustes, Accesibilidad y Licencias</string>
+    <string name="settings_subtitle">Controla el tema visual, reducción de movimiento, vista avanzada y avisos de código abierto.</string>
+    <string name="settings_appearance_section">Apariencia y accesibilidad</string>
+    <string name="settings_theme_dark">Oscuro Tinta</string>
+    <string name="settings_theme_light">Claro Cálido</string>
+    <string name="settings_theme_system">Automático</string>
+    <string name="settings_reduce_motion_title">Reducir movimiento</string>
+    <string name="settings_reduce_motion_desc">Desactiva animaciones elásticas y transiciones de desplazamiento para mayor comodidad visual y fluidez en dispositivos modestos.</string>
+    <string name="settings_advanced_adb_title">Mostrar detalles técnicos ADB y SHA‑256</string>
+    <string name="settings_advanced_adb_desc">Muestra identificadores completos de paquetes, hashes criptográficos y evidencia de lectura en las tarjetas de análisis y Style Studio.</string>
+    <string name="settings_privacy_section">Privacidad verificable</string>
+    <string name="settings_privacy_statement">Sin cuentas obligatorias, anuncios ni telemetría oculta. TVeoClean solo contacta con GitHub cuando pulsas explícitamente importar o buscar actualizaciones en Style Studio.</string>
+    <string name="settings_licenses_section">Atribuciones y licencias Open Source</string>
+</resources>
