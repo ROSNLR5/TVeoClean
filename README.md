@@ -1,5 +1,4 @@
-
-<h1 align="center">TVeoClean</h1>
+# TVeoClean
 
 <p align="center">
   <strong>Tu televisor. Tu configuración. Tu control.</strong><br>
@@ -34,7 +33,7 @@ Una parte central del proyecto es su sistema de paquetes comunitarios: el usuari
 > **Estado del proyecto:** TVeoClean está en desarrollo activo. Este repositorio contiene código de la aplicación y de sus componentes principales, pero la compatibilidad, la estabilidad y la seguridad de cada operación deben seguir validándose con pruebas en dispositivos reales. Las funciones descritas aquí representan el alcance del proyecto y no equivalen a una certificación de compatibilidad para todos los televisores.
 
 <p align="center">
-  <img src="docs/images/TVeoClean.gif" width="800" alt="Demostración animada de TVeoClean">
+  <img src="docs/images/TVeoClean.gif" width="267" alt="Demostración animada de TVeoClean">
 </p>
 
 ## 🎯 Objetivos del proyecto
