@@ -352,4 +352,105 @@ class ExampleRobolectricTest {
             db.close()
         }
     }
+
+    @Test
+    fun `version 1_0_0 displays in Settings and automatic GitHub Release update flow verifies consent before installing APK`() {
+        var installerLaunchedCount = 0
+        val fakeRelease = com.example.core.update.AppUpdateReleaseInfo(
+            tagName = "v1.2.0",
+            semanticVersion = com.example.core.update.SemanticVersion(1, 2, 0),
+            releaseTitle = "TVeoClean 1.2.0",
+            changelog = "Nuevas mejoras de detección automática y perfiles seguros.",
+            publishedAtIso = "2026-10-26",
+            releaseHtmlUrl = "https://github.com/ROSNLR5/TVeoClean/releases/tag/v1.2.0",
+            apkAsset = com.example.core.update.GitHubReleaseAssetInfo(
+                name = "TVeoClean-1.2.0.apk",
+                downloadUrl = "https://github.com/ROSNLR5/TVeoClean/releases/download/v1.2.0/TVeoClean-1.2.0.apk",
+                sizeBytes = 8L * 1024L * 1024L,
+                contentType = "application/vnd.android.package-archive",
+                declaredSha256 = "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
+            )
+        )
+        val fakeUpdateRepo = object : com.example.core.update.AppUpdateRepository {
+            override val currentVersionName: String = "1.0.0"
+            override suspend fun checkForUpdates(includePreReleases: Boolean): com.example.core.update.AppUpdateCheckOutcome {
+                return com.example.core.update.AppUpdateCheckOutcome.UpdateAvailable(fakeRelease)
+            }
+            override suspend fun downloadAndVerifyUpdate(
+                release: com.example.core.update.AppUpdateReleaseInfo,
+                onProgress: (Long, Long) -> Unit
+            ): com.example.core.update.AppUpdateDownloadOutcome {
+                onProgress(release.apkAsset.sizeBytes, release.apkAsset.sizeBytes)
+                return com.example.core.update.AppUpdateDownloadOutcome.Verified(
+                    com.example.core.update.VerifiedDownloadedApk(
+                        filePath = "/tmp/TVeoClean-1.2.0.apk",
+                        fileName = "TVeoClean-1.2.0.apk",
+                        sizeBytes = release.apkAsset.sizeBytes,
+                        computedSha256 = "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+                        expectedSha256 = "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+                        sha256VerifiedAgainstRelease = true,
+                        archivePackageName = "com.aistudio.tveoclean.kxmprq",
+                        archiveVersionName = "1.2.0",
+                        signingCertSha256 = "11223344",
+                        matchesInstalledPackageId = true,
+                        matchesInstalledSigningCert = true
+                    )
+                )
+            }
+            override fun canRequestPackageInstalls(): Boolean = true
+            override fun launchApkInstaller(verifiedApk: com.example.core.update.VerifiedDownloadedApk): Result<Unit> {
+                installerLaunchedCount++
+                return Result.success(Unit)
+            }
+            override fun openUnknownSourcesSettings(): Result<Unit> = Result.success(Unit)
+        }
+
+        val prefsRepo = InMemoryUserPreferencesRepository(
+            UserPreferencesState(onboardingCompleted = true, reduceMotion = true)
+        )
+        val viewModel = TVeoCleanViewModel(
+            preferencesRepository = prefsRepo,
+            appUpdateRepository = fakeUpdateRepo,
+            autoCheckUpdatesOnLaunch = true
+        )
+
+        composeTestRule.setContent {
+            TVeoCleanApp(viewModel = viewModel)
+        }
+        ShadowLooper.idleMainLooper()
+        composeTestRule.waitForIdle()
+
+        // 1. Automatic launch check surfaces sleek update banner on Home
+        composeTestRule.onNodeWithTag("home_update_banner").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Nueva versión disponible · v1.2.0").assertIsDisplayed()
+
+        // 2. Navigate to Ajustes and verify Versión 1.0.0 badge + update card
+        composeTestRule.onNodeWithTag("nav_item_settings").performClick()
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithTag("settings_lazy_list")
+            .performScrollToNode(hasTestTag("app_version_update_card"))
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText("Versión 1.0.0").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("review_update_button").performClick()
+        composeTestRule.waitForIdle()
+
+        // 3. Inside AppUpdateDialog -> Download APK -> Verify consent required before installing
+        composeTestRule.onNodeWithTag("app_update_dialog").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("download_update_apk_button").performClick()
+        ShadowLooper.idleMainLooper()
+        composeTestRule.waitForIdle()
+
+        // Attempt install before consent -> installer must NOT launch
+        viewModel.installVerifiedAppUpdate()
+        assertEquals(0, installerLaunchedCount)
+
+        // Check explicit APK consent -> click Install -> installer launches!
+        composeTestRule.onNodeWithTag("apk_install_consent_checkbox").performClick()
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithTag("install_verified_apk_button").performClick()
+        ShadowLooper.idleMainLooper()
+        composeTestRule.waitForIdle()
+
+        assertEquals(1, installerLaunchedCount)
+    }
 }

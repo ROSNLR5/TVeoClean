@@ -82,6 +82,8 @@
     <string name="settings_advanced_adb_title">Mostrar detalles técnicos ADB y SHA‑256</string>
     <string name="settings_advanced_adb_desc">Muestra identificadores completos de paquetes, hashes criptográficos y evidencia de lectura en las tarjetas de análisis y Style Studio.</string>
     <string name="settings_privacy_section">Privacidad verificable</string>
-    <string name="settings_privacy_statement">Sin cuentas obligatorias, anuncios ni telemetría oculta. TVeoClean solo contacta con GitHub cuando pulsas explícitamente importar o buscar actualizaciones en Style Studio.</string>
+    <string name="settings_privacy_statement">Sin cuentas obligatorias, anuncios ni telemetría oculta. TVeoClean solo contacta con GitHub para comprobar versiones oficiales en ROSNLR5/TVeoClean o cuando importas un paquete en Style Studio.</string>
     <string name="settings_licenses_section">Atribuciones y licencias Open Source</string>
+    <string name="settings_updates_section">Versión y actualizaciones</string>
+    <string name="settings_check_updates">Buscar actualizaciones</string>
 </resources>

@@ -64,6 +64,10 @@ interface TVeoStrings {
     val homeVerifiedEmpty: String
     fun homeVerifiedReportSummary(total: Int, enabled: Int, disabled: Int): String
     fun homeActiveMobileThemeBanner(packName: String): String
+    fun homeUpdateBannerTitle(newVersion: String): String
+    fun homeUpdateBannerSubtitle(currentVersion: String, sizeLabel: String): String
+    val homeUpdateBannerButton: String
+    val homeUpdateReadyButton: String
 
     // My TV: Auto Network Scanner + Manual + Saved TVs + Clean Engine
     val myTvTitle: String
@@ -243,6 +247,38 @@ interface TVeoStrings {
     val license3Notice: String
     val license4Project: String
     val license4Notice: String
+
+    // App Version 1.0.0 & Official GitHub Releases Updater (ROSNLR5/TVeoClean)
+    val settingsUpdateSectionTitle: String
+    fun settingsVersionPill(version: String): String
+    val settingsUpdateChannelSubtitle: String
+    val settingsCheckUpdatesButton: String
+    val settingsCheckingUpdatesStatus: String
+    fun settingsUpToDateStatus(version: String): String
+    fun settingsNoReleasesYetStatus(version: String): String
+    fun settingsUpdateAvailableStatus(newVersion: String, sizeLabel: String): String
+    fun settingsUpdateReadyToInstallStatus(newVersion: String): String
+    fun settingsReviewUpdateButton(newVersion: String): String
+    val settingsOpenGitHubReleasesButton: String
+
+    val updateDialogTitle: String
+    fun updateVersionTransition(currentVersion: String, newVersion: String): String
+    fun updateAssetSummary(fileName: String, sizeLabel: String, dateLabel: String): String
+    val updateReleaseNotesTitle: String
+    val updateReleaseNotesEmpty: String
+    val updateSecurityCardTitle: String
+    val updateSecuritySourceLine: String
+    val updateSecurityShaPendingLine: String
+    fun updateSecurityShaReleaseVerified(shortSha: String): String
+    fun updateSecurityShaComputedLocal(shortSha: String): String
+    val updateSecuritySignatureConflictWarning: String
+    val updateExplicitApkConsentLabel: String
+    fun updateDownloadButton(sizeLabel: String): String
+    fun updateDownloadingStatus(downloadedMb: String, totalMb: String, percent: Int): String
+    val updateCancelDownloadButton: String
+    val updateUnknownSourcesNotice: String
+    val updateAllowInstallSourceButton: String
+    fun updateInstallNowButton(newVersion: String): String
 }
 
 object SpanishTVeoStrings : TVeoStrings {
@@ -311,6 +347,11 @@ object SpanishTVeoStrings : TVeoStrings {
     override fun homeVerifiedReportSummary(total: Int, enabled: Int, disabled: Int) =
         "$total aplicaciones detectadas · $enabled activas · $disabled desactivadas."
     override fun homeActiveMobileThemeBanner(packName: String) = "Estilo activo en teléfono: $packName"
+    override fun homeUpdateBannerTitle(newVersion: String) = "Nueva versión disponible · v$newVersion"
+    override fun homeUpdateBannerSubtitle(currentVersion: String, sizeLabel: String) =
+        "Actualiza desde v$currentVersion ($sizeLabel) desde el repositorio oficial de GitHub."
+    override val homeUpdateBannerButton = "Actualizar"
+    override val homeUpdateReadyButton = "Instalar"
 
     override val myTvTitle = "Mi TV"
     override val myTvSubtitle = "Conecta tu televisor por Wi‑Fi y gestiona sus aplicaciones con respaldo automático."
@@ -485,6 +526,49 @@ object SpanishTVeoStrings : TVeoStrings {
     override val license3Notice = "Incluidas localmente bajo SIL Open Font License 1.1 y Apache-2.0."
     override val license4Project = "Android Jetpack, Material 3, Room, DataStore & OkHttp"
     override val license4Notice = "Copyright Google LLC y Square, Inc. Bajo Apache License 2.0."
+
+    override val settingsUpdateSectionTitle = "Versión y actualizaciones"
+    override fun settingsVersionPill(version: String) = "Versión $version"
+    override val settingsUpdateChannelSubtitle = "Canal oficial: github.com/ROSNLR5/TVeoClean (Releases)"
+    override val settingsCheckUpdatesButton = "Buscar actualizaciones"
+    override val settingsCheckingUpdatesStatus = "Comprobando última versión en GitHub Releases…"
+    override fun settingsUpToDateStatus(version: String) =
+        "Tienes instalada la versión más reciente disponible (v$version)."
+    override fun settingsNoReleasesYetStatus(version: String) =
+        "Estás en la versión oficial v$version. Aún no hay versiones más nuevas publicadas en GitHub Releases."
+    override fun settingsUpdateAvailableStatus(newVersion: String, sizeLabel: String) =
+        "Nueva versión v$newVersion disponible ($sizeLabel) lista para descargar."
+    override fun settingsUpdateReadyToInstallStatus(newVersion: String) =
+        "APK v$newVersion descargado y verificado con SHA‑256. Listo para instalar."
+    override fun settingsReviewUpdateButton(newVersion: String) = "Actualizar a v$newVersion"
+    override val settingsOpenGitHubReleasesButton = "Ver Releases"
+
+    override val updateDialogTitle = "Actualización oficial de TVeoClean"
+    override fun updateVersionTransition(currentVersion: String, newVersion: String) =
+        "Instalada v$currentVersion  →  Nueva v$newVersion"
+    override fun updateAssetSummary(fileName: String, sizeLabel: String, dateLabel: String) =
+        "$fileName · $sizeLabel · $dateLabel"
+    override val updateReleaseNotesTitle = "Novedades de esta versión"
+    override val updateReleaseNotesEmpty = "Lanzamiento oficial publicado en github.com/ROSNLR5/TVeoClean/releases."
+    override val updateSecurityCardTitle = "Verificación de seguridad del APK"
+    override val updateSecuritySourceLine = "Origen HTTPS verificado: github.com/ROSNLR5/TVeoClean"
+    override val updateSecurityShaPendingLine = "Se calculará y validará la huella SHA‑256 y la integridad del paquete antes de instalar."
+    override fun updateSecurityShaReleaseVerified(shortSha: String) =
+        "SHA‑256 verificado contra el release oficial ($shortSha…)"
+    override fun updateSecurityShaComputedLocal(shortSha: String) =
+        "APK íntegro · SHA‑256 calculado ($shortSha…)"
+    override val updateSecuritySignatureConflictWarning =
+        "Aviso: el identificador o certificado de firma del APK difiere de la compilación instalada. Si Android rechaza actualizar encima, desinstala la compilación previa primero."
+    override val updateExplicitApkConsentLabel =
+        "Confirmo que deseo instalar este APK descargado del repositorio oficial ROSNLR5/TVeoClean."
+    override fun updateDownloadButton(sizeLabel: String) = "Descargar APK más reciente ($sizeLabel)"
+    override fun updateDownloadingStatus(downloadedMb: String, totalMb: String, percent: Int) =
+        "Descargando actualización: $downloadedMb / $totalMb ($percent %)"
+    override val updateCancelDownloadButton = "Cancelar descarga"
+    override val updateUnknownSourcesNotice =
+        "Android requiere autorizar a TVeoClean para iniciar el instalador del sistema. Pulsa abajo, activa el permiso y vuelve para instalar."
+    override val updateAllowInstallSourceButton = "Autorizar permiso de instalación"
+    override fun updateInstallNowButton(newVersion: String) = "Instalar v$newVersion ahora"
 }
 
 object EnglishTVeoStrings : TVeoStrings {
@@ -553,6 +637,11 @@ object EnglishTVeoStrings : TVeoStrings {
     override fun homeVerifiedReportSummary(total: Int, enabled: Int, disabled: Int) =
         "$total apps detected · $enabled enabled · $disabled disabled."
     override fun homeActiveMobileThemeBanner(packName: String) = "Active phone style: $packName"
+    override fun homeUpdateBannerTitle(newVersion: String) = "New version available · v$newVersion"
+    override fun homeUpdateBannerSubtitle(currentVersion: String, sizeLabel: String) =
+        "Upgrade from v$currentVersion ($sizeLabel) directly from the official GitHub repository."
+    override val homeUpdateBannerButton = "Update"
+    override val homeUpdateReadyButton = "Install"
 
     override val myTvTitle = "My TV"
     override val myTvSubtitle = "Connect your TV over Wi‑Fi and manage apps with automatic restore points."
@@ -727,6 +816,49 @@ object EnglishTVeoStrings : TVeoStrings {
     override val license3Notice = "Bundled locally under SIL Open Font License 1.1 and Apache-2.0."
     override val license4Project = "Android Jetpack, Material 3, Room, DataStore & OkHttp"
     override val license4Notice = "Copyright Google LLC and Square, Inc. Licensed under Apache License 2.0."
+
+    override val settingsUpdateSectionTitle = "Version & updates"
+    override fun settingsVersionPill(version: String) = "Version $version"
+    override val settingsUpdateChannelSubtitle = "Official channel: github.com/ROSNLR5/TVeoClean (Releases)"
+    override val settingsCheckUpdatesButton = "Check for updates"
+    override val settingsCheckingUpdatesStatus = "Checking latest release on GitHub Releases…"
+    override fun settingsUpToDateStatus(version: String) =
+        "You are running the latest available version (v$version)."
+    override fun settingsNoReleasesYetStatus(version: String) =
+        "Running official version v$version. No newer releases have been published on GitHub Releases yet."
+    override fun settingsUpdateAvailableStatus(newVersion: String, sizeLabel: String) =
+        "New version v$newVersion available ($sizeLabel) ready to download."
+    override fun settingsUpdateReadyToInstallStatus(newVersion: String) =
+        "APK v$newVersion downloaded and SHA‑256 verified. Ready to install."
+    override fun settingsReviewUpdateButton(newVersion: String) = "Update to v$newVersion"
+    override val settingsOpenGitHubReleasesButton = "View Releases"
+
+    override val updateDialogTitle = "Official TVeoClean Update"
+    override fun updateVersionTransition(currentVersion: String, newVersion: String) =
+        "Installed v$currentVersion  →  New v$newVersion"
+    override fun updateAssetSummary(fileName: String, sizeLabel: String, dateLabel: String) =
+        "$fileName · $sizeLabel · $dateLabel"
+    override val updateReleaseNotesTitle = "What's new in this release"
+    override val updateReleaseNotesEmpty = "Official release published on github.com/ROSNLR5/TVeoClean/releases."
+    override val updateSecurityCardTitle = "APK Security Verification"
+    override val updateSecuritySourceLine = "Verified HTTPS origin: github.com/ROSNLR5/TVeoClean"
+    override val updateSecurityShaPendingLine = "SHA‑256 digest and APK archive integrity will be verified before installation."
+    override fun updateSecurityShaReleaseVerified(shortSha: String) =
+        "SHA‑256 verified against official release ($shortSha…)"
+    override fun updateSecurityShaComputedLocal(shortSha: String) =
+        "Intact APK · Computed SHA‑256 ($shortSha…)"
+    override val updateSecuritySignatureConflictWarning =
+        "Notice: APK package ID or signing certificate differs from the currently installed build. If Android blocks in-place upgrade, uninstall the prior build first."
+    override val updateExplicitApkConsentLabel =
+        "I confirm that I want to install this APK downloaded from the official ROSNLR5/TVeoClean repository."
+    override fun updateDownloadButton(sizeLabel: String) = "Download latest APK ($sizeLabel)"
+    override fun updateDownloadingStatus(downloadedMb: String, totalMb: String, percent: Int) =
+        "Downloading update: $downloadedMb / $totalMb ($percent%)"
+    override val updateCancelDownloadButton = "Cancel download"
+    override val updateUnknownSourcesNotice =
+        "Android requires allowing TVeoClean to launch the system package installer. Tap below, grant permission, and return to install."
+    override val updateAllowInstallSourceButton = "Allow install permission"
+    override fun updateInstallNowButton(newVersion: String) = "Install v$newVersion now"
 }
 
 val LocalAppStrings = staticCompositionLocalOf<TVeoStrings> { SpanishTVeoStrings }

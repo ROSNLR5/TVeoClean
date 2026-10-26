@@ -14,6 +14,7 @@ import com.example.core.packs.GitHubPackImporter
 import com.example.core.persistence.RoomPersistenceRepository
 import com.example.core.persistence.TVeoCleanDatabase
 import com.example.core.preferences.DataStoreUserPreferencesRepository
+import com.example.core.update.GitHubAppUpdateManager
 import com.example.ui.TVeoCleanApp
 import com.example.ui.TVeoCleanViewModel
 import java.io.File
@@ -34,6 +35,7 @@ class MainActivity : ComponentActivity() {
             baseStorageDir = File(appCtx.filesDir, "imported_packs")
         )
         val screenshotDir = File(appCtx.filesDir, "private_screenshots")
+        val appUpdateManager = GitHubAppUpdateManager(context = appCtx)
 
         setContent {
             val factory = remember {
@@ -45,7 +47,9 @@ class MainActivity : ComponentActivity() {
                     activeNetworkScanner = activeSubnetScanner,
                     persistenceRepository = persistenceRepository,
                     gitHubPackImporter = gitHubImporter,
-                    screenshotStorageDir = screenshotDir
+                    screenshotStorageDir = screenshotDir,
+                    appUpdateRepository = appUpdateManager,
+                    autoCheckUpdatesOnLaunch = true
                 )
             }
             val viewModel: TVeoCleanViewModel = viewModel(factory = factory)

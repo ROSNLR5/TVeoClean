@@ -32,6 +32,7 @@ import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.LinkOff
 import androidx.compose.material.icons.filled.Lock
@@ -40,12 +41,14 @@ import androidx.compose.material.icons.filled.Radar
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SettingsRemote
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -66,6 +69,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.R
+import com.example.core.update.AppUpdateUiState
 import com.example.ui.TVeoCleanUiState
 import com.example.ui.design.CalmSectionCard
 import com.example.ui.design.ColorSwatchRow
@@ -677,10 +681,18 @@ fun HomeScreen(
     onNavigateToStudio: () -> Unit,
     onNavigateToHistory: () -> Unit,
     onOpenRemoteControl: () -> Unit,
+    onOpenUpdateDialog: () -> Unit = {},
+    onDismissUpdateBanner: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val strings = LocalAppStrings.current
     val report = uiState.latestReadOnlyReport
+    val activeUpdateRelease = when (val upd = uiState.appUpdateState) {
+        is AppUpdateUiState.UpdateAvailable -> upd.release
+        is AppUpdateUiState.Downloading -> upd.release
+        is AppUpdateUiState.ReadyToInstall -> upd.release
+        else -> null
+    }
 
     Box(
         contentAlignment = Alignment.TopCenter,
@@ -707,6 +719,90 @@ fun HomeScreen(
                         )
                     }
                 )
+            }
+
+            if (activeUpdateRelease != null && !uiState.isHomeUpdateBannerDismissed) {
+                item {
+                    val isReady = uiState.appUpdateState is AppUpdateUiState.ReadyToInstall
+                    val newVer = activeUpdateRelease.semanticVersion.normalizedString
+                    Card(
+                        shape = RoundedCornerShape(18.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+                        ),
+                        border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.65f)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("home_update_banner")
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 12.dp)
+                        ) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.size(38.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Filled.SystemUpdate,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = strings.homeUpdateBannerTitle(newVer),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = strings.homeUpdateBannerSubtitle(
+                                        currentVersion = uiState.appVersionName,
+                                        sizeLabel = activeUpdateRelease.apkAsset.formattedSizeMb()
+                                    ),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                            Button(
+                                onClick = onOpenUpdateDialog,
+                                shape = RoundedCornerShape(12.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp),
+                                modifier = Modifier
+                                    .height(48.dp)
+                                    .testTag("home_update_cta_button")
+                            ) {
+                                Text(
+                                    text = if (isReady) strings.homeUpdateReadyButton else strings.homeUpdateBannerButton,
+                                    style = MaterialTheme.typography.labelLarge
+                                )
+                            }
+                            IconButton(
+                                onClick = onDismissUpdateBanner,
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .testTag("home_update_dismiss_button")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Close,
+                                    contentDescription = strings.dialogClose,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    }
+                }
             }
 
             // Clean, Uncluttered 16:9 Hero TV Card (without noisy package-count overlay)

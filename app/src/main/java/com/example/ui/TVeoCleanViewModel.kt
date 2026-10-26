@@ -44,10 +44,17 @@ import com.example.core.preferences.UserPreferencesRepository
 import com.example.core.preferences.UserPreferencesState
 import com.example.core.privacy.TvPrivacyInspector
 import com.example.core.privacy.TvPrivacyReport
+import com.example.BuildConfig
 import com.example.core.restore.AuditLogEntry
 import com.example.core.restore.IntegrityHashUtil
 import com.example.core.restore.LocalSnapshotRecord
 import com.example.core.restore.SnapshotScope
+import com.example.core.update.AppUpdateCheckOutcome
+import com.example.core.update.AppUpdateDownloadOutcome
+import com.example.core.update.AppUpdateReleaseInfo
+import com.example.core.update.AppUpdateRepository
+import com.example.core.update.AppUpdateUiState
+import com.example.core.update.NoOpAppUpdateRepository
 import com.example.ui.design.parseHexColorSafe
 import com.example.ui.i18n.AppLanguage
 import com.example.ui.i18n.TVeoStrings
@@ -166,6 +173,11 @@ data class TVeoCleanUiState(
     val gitHubImportState: GitHubImportCheckState = GitHubImportCheckState.Hidden,
     val snapshots: List<LocalSnapshotRecord> = emptyList(),
     val auditLog: List<AuditLogEntry> = emptyList(),
+    val appVersionName: String = BuildConfig.VERSION_NAME,
+    val appUpdateState: AppUpdateUiState = AppUpdateUiState.Idle(BuildConfig.VERSION_NAME),
+    val isUpdateDialogOpen: Boolean = false,
+    val apkInstallConsentChecked: Boolean = false,
+    val isHomeUpdateBannerDismissed: Boolean = false,
     val statusBannerEs: String? = null,
     val statusBannerEn: String? = null
 ) {
@@ -255,6 +267,10 @@ private data class TransientInternalState(
     val unverifiedPackConsentChecked: Boolean = false,
     val compareProposedInPreview: Boolean = true,
     val gitHubImportState: GitHubImportCheckState = GitHubImportCheckState.Hidden,
+    val appUpdateState: AppUpdateUiState = AppUpdateUiState.Idle(BuildConfig.VERSION_NAME),
+    val isUpdateDialogOpen: Boolean = false,
+    val apkInstallConsentChecked: Boolean = false,
+    val isHomeUpdateBannerDismissed: Boolean = false,
     val statusBannerEs: String? = null,
     val statusBannerEn: String? = null
 )
@@ -277,6 +293,8 @@ class TVeoCleanViewModel(
         baseStorageDir = File(System.getProperty("java.io.tmpdir") ?: ".", "tveoclean_packs")
     ),
     private val screenshotStorageDir: File = File(System.getProperty("java.io.tmpdir") ?: ".", "tveoclean_screenshots"),
+    private val appUpdateRepository: AppUpdateRepository = NoOpAppUpdateRepository(),
+    private val autoCheckUpdatesOnLaunch: Boolean = false,
     private val readOnlyAnalyzer: ReadOnlyTvAnalyzer = ReadOnlyTvAnalyzer(),
     private val cleanEngine: TransactionalCleanEngine = TransactionalCleanEngine(),
     private val privacyInspector: TvPrivacyInspector = TvPrivacyInspector()
@@ -285,12 +303,15 @@ class TVeoCleanViewModel(
     private val internalState = MutableStateFlow(
         TransientInternalState(
             keystoreFingerprint = keyManager.publicKeyFingerprintSha256(),
-            customSubnetPrefixInput = activeNetworkScanner.detectLocalPrivateIpv4()?.substringBeforeLast('.').orEmpty()
+            customSubnetPrefixInput = activeNetworkScanner.detectLocalPrivateIpv4()?.substringBeforeLast('.').orEmpty(),
+            appUpdateState = AppUpdateUiState.Idle(appUpdateRepository.currentVersionName)
         )
     )
     private var activeConnectJob: Job? = null
     private var activeScanJob: Job? = null
     private var activeImportJob: Job? = null
+    private var activeUpdateCheckJob: Job? = null
+    private var activeUpdateDownloadJob: Job? = null
 
     init {
         viewModelScope.launch {
@@ -298,13 +319,16 @@ class TVeoCleanViewModel(
                 AuditLogEntry(
                     id = "boot-audit",
                     timestampEpochMs = System.currentTimeMillis(),
-                    operationEs = "Sistema TVeoClean operativo",
-                    operationEn = "TVeoClean production core ready",
+                    operationEs = "Sistema TVeoClean v${appUpdateRepository.currentVersionName} operativo",
+                    operationEn = "TVeoClean v${appUpdateRepository.currentVersionName} production core ready",
                     targetLabel = "TVeoClean Core",
                     outcomeEs = "Lista protegida v${ProtectedPackageRegistry.REGISTRY_VERSION} activa (${ProtectedPackageRegistry.allEntries().size} paquetes críticos blindados).",
                     outcomeEn = "Protected list v${ProtectedPackageRegistry.REGISTRY_VERSION} active (${ProtectedPackageRegistry.allEntries().size} critical packages guarded)."
                 )
             )
+        }
+        if (autoCheckUpdatesOnLaunch) {
+            checkForAppUpdates(silentOnNoNewRelease = true)
         }
     }
 
@@ -361,6 +385,11 @@ class TVeoCleanViewModel(
             gitHubImportState = transient.gitHubImportState,
             snapshots = persisted.snapshots,
             auditLog = persisted.audits,
+            appVersionName = appUpdateRepository.currentVersionName,
+            appUpdateState = transient.appUpdateState,
+            isUpdateDialogOpen = transient.isUpdateDialogOpen,
+            apkInstallConsentChecked = transient.apkInstallConsentChecked,
+            isHomeUpdateBannerDismissed = transient.isHomeUpdateBannerDismissed,
             statusBannerEs = transient.statusBannerEs,
             statusBannerEn = transient.statusBannerEn
         )
@@ -368,7 +397,9 @@ class TVeoCleanViewModel(
         scope = viewModelScope,
         started = SharingStarted.Eagerly,
         initialValue = TVeoCleanUiState(
-            keystorePublicFingerprint = keyManager.publicKeyFingerprintSha256()
+            keystorePublicFingerprint = keyManager.publicKeyFingerprintSha256(),
+            appVersionName = appUpdateRepository.currentVersionName,
+            appUpdateState = AppUpdateUiState.Idle(appUpdateRepository.currentVersionName)
         )
     )
 
@@ -1330,6 +1361,261 @@ class TVeoCleanViewModel(
         }
     }
 
+    // Official GitHub Releases Self-Updater (ROSNLR5/TVeoClean)
+    fun checkForAppUpdates(silentOnNoNewRelease: Boolean = false) {
+        if (internalState.value.appUpdateState is AppUpdateUiState.Downloading) return
+        activeUpdateCheckJob?.cancel()
+        val currentVer = appUpdateRepository.currentVersionName
+        if (!silentOnNoNewRelease) {
+            internalState.update {
+                it.copy(appUpdateState = AppUpdateUiState.Checking(currentVer))
+            }
+        }
+        activeUpdateCheckJob = viewModelScope.launch {
+            when (val outcome = appUpdateRepository.checkForUpdates(includePreReleases = false)) {
+                is AppUpdateCheckOutcome.UpdateAvailable -> {
+                    val newVer = outcome.latestRelease.semanticVersion.normalizedString
+                    internalState.update { state ->
+                        state.copy(
+                            appUpdateState = AppUpdateUiState.UpdateAvailable(
+                                currentVersion = currentVer,
+                                release = outcome.latestRelease
+                            ),
+                            apkInstallConsentChecked = false,
+                            isHomeUpdateBannerDismissed = false,
+                            statusBannerEs = if (!silentOnNoNewRelease) {
+                                "Nueva versión v$newVer disponible en GitHub Releases."
+                            } else state.statusBannerEs,
+                            statusBannerEn = if (!silentOnNoNewRelease) {
+                                "New version v$newVer available on GitHub Releases."
+                            } else state.statusBannerEn
+                        )
+                    }
+                    appendAudit(
+                        operationEs = "Nueva actualización oficial detectada",
+                        operationEn = "Official app update detected",
+                        targetLabel = "ROSNLR5/TVeoClean · v$newVer",
+                        outcomeEs = "Disponible v$newVer (${outcome.latestRelease.apkAsset.name}). Instalada: v$currentVer.",
+                        outcomeEn = "Available v$newVer (${outcome.latestRelease.apkAsset.name}). Installed: v$currentVer."
+                    )
+                }
+                is AppUpdateCheckOutcome.UpToDate -> {
+                    internalState.update { state ->
+                        state.copy(
+                            appUpdateState = AppUpdateUiState.UpToDate(
+                                currentVersion = currentVer,
+                                latestPublishedVersion = outcome.latestPublishedVersion,
+                                hasPublishedReleases = outcome.hasPublishedReleases
+                            ),
+                            statusBannerEs = if (!silentOnNoNewRelease) {
+                                "TVeoClean v$currentVer está actualizado."
+                            } else state.statusBannerEs,
+                            statusBannerEn = if (!silentOnNoNewRelease) {
+                                "TVeoClean v$currentVer is up to date."
+                            } else state.statusBannerEn
+                        )
+                    }
+                }
+                is AppUpdateCheckOutcome.Failed -> {
+                    if (silentOnNoNewRelease) {
+                        internalState.update {
+                            it.copy(appUpdateState = AppUpdateUiState.Idle(currentVer))
+                        }
+                    } else {
+                        internalState.update {
+                            it.copy(
+                                appUpdateState = AppUpdateUiState.Error(
+                                    currentVersion = currentVer,
+                                    messageEs = outcome.messageEs,
+                                    messageEn = outcome.messageEn
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fun openAppUpdateDialog() {
+        refreshInstallPermissionState()
+        internalState.update { it.copy(isUpdateDialogOpen = true) }
+    }
+
+    fun closeAppUpdateDialog() {
+        internalState.update { it.copy(isUpdateDialogOpen = false) }
+    }
+
+    fun dismissHomeUpdateBanner() {
+        internalState.update { it.copy(isHomeUpdateBannerDismissed = true) }
+    }
+
+    fun setApkInstallConsent(checked: Boolean) {
+        internalState.update { it.copy(apkInstallConsentChecked = checked) }
+    }
+
+    fun downloadLatestAppUpdate() {
+        val currentState = internalState.value.appUpdateState
+        val release: AppUpdateReleaseInfo = when (currentState) {
+            is AppUpdateUiState.UpdateAvailable -> currentState.release
+            is AppUpdateUiState.Error -> currentState.release ?: return
+            is AppUpdateUiState.ReadyToInstall -> currentState.release
+            else -> return
+        }
+        val currentVer = appUpdateRepository.currentVersionName
+        activeUpdateDownloadJob?.cancel()
+        internalState.update {
+            it.copy(
+                isUpdateDialogOpen = true,
+                apkInstallConsentChecked = false,
+                appUpdateState = AppUpdateUiState.Downloading(
+                    currentVersion = currentVer,
+                    release = release,
+                    downloadedBytes = 0L,
+                    totalBytes = release.apkAsset.sizeBytes
+                )
+            )
+        }
+        activeUpdateDownloadJob = viewModelScope.launch {
+            val outcome = appUpdateRepository.downloadAndVerifyUpdate(
+                release = release,
+                onProgress = { downloaded, total ->
+                    internalState.update { state ->
+                        if (state.appUpdateState is AppUpdateUiState.Downloading) {
+                            state.copy(
+                                appUpdateState = state.appUpdateState.copy(
+                                    downloadedBytes = downloaded,
+                                    totalBytes = total
+                                )
+                            )
+                        } else {
+                            state
+                        }
+                    }
+                }
+            )
+            when (outcome) {
+                is AppUpdateDownloadOutcome.Verified -> {
+                    val canInstall = appUpdateRepository.canRequestPackageInstalls()
+                    internalState.update {
+                        it.copy(
+                            appUpdateState = AppUpdateUiState.ReadyToInstall(
+                                currentVersion = currentVer,
+                                release = release,
+                                verifiedApk = outcome.verifiedApk,
+                                canInstallPackages = canInstall
+                            )
+                        )
+                    }
+                    appendAudit(
+                        operationEs = "APK oficial descargado y verificado",
+                        operationEn = "Official APK downloaded & verified",
+                        targetLabel = outcome.verifiedApk.fileName,
+                        outcomeEs = "SHA‑256: ${outcome.verifiedApk.computedSha256.take(16)}…",
+                        outcomeEn = "SHA‑256: ${outcome.verifiedApk.computedSha256.take(16)}…"
+                    )
+                }
+                is AppUpdateDownloadOutcome.Rejected -> {
+                    internalState.update {
+                        it.copy(
+                            appUpdateState = AppUpdateUiState.Error(
+                                currentVersion = currentVer,
+                                messageEs = outcome.messageEs,
+                                messageEn = outcome.messageEn,
+                                release = release
+                            )
+                        )
+                    }
+                    appendAudit(
+                        operationEs = "Descarga de actualización rechazada",
+                        operationEn = "Update download rejected",
+                        targetLabel = release.apkAsset.name,
+                        outcomeEs = outcome.messageEs,
+                        outcomeEn = outcome.messageEn
+                    )
+                }
+            }
+        }
+    }
+
+    fun cancelAppUpdateDownload() {
+        activeUpdateDownloadJob?.cancel()
+        activeUpdateDownloadJob = null
+        val currentState = internalState.value.appUpdateState
+        val release = (currentState as? AppUpdateUiState.Downloading)?.release
+        val currentVer = appUpdateRepository.currentVersionName
+        internalState.update {
+            it.copy(
+                appUpdateState = if (release != null) {
+                    AppUpdateUiState.UpdateAvailable(currentVer, release)
+                } else {
+                    AppUpdateUiState.Idle(currentVer)
+                }
+            )
+        }
+    }
+
+    fun refreshInstallPermissionState() {
+        internalState.update { state ->
+            val ready = state.appUpdateState as? AppUpdateUiState.ReadyToInstall ?: return@update state
+            val canInstall = appUpdateRepository.canRequestPackageInstalls()
+            if (ready.canInstallPackages == canInstall) {
+                state
+            } else {
+                state.copy(appUpdateState = ready.copy(canInstallPackages = canInstall))
+            }
+        }
+    }
+
+    fun requestUnknownSourcesPermission() {
+        appUpdateRepository.openUnknownSourcesSettings().onFailure { err ->
+            internalState.update {
+                it.copy(
+                    statusBannerEs = "No se pudo abrir ajustes de permisos: ${err.message}",
+                    statusBannerEn = "Could not open permission settings: ${err.message}"
+                )
+            }
+        }
+    }
+
+    fun installVerifiedAppUpdate() {
+        val ready = internalState.value.appUpdateState as? AppUpdateUiState.ReadyToInstall ?: return
+        if (!internalState.value.apkInstallConsentChecked) {
+            internalState.update {
+                it.copy(
+                    statusBannerEs = "Confirma la casilla de consentimiento antes de iniciar el instalador del APK.",
+                    statusBannerEn = "Check the confirmation box before launching the APK installer."
+                )
+            }
+            return
+        }
+        if (!appUpdateRepository.canRequestPackageInstalls()) {
+            refreshInstallPermissionState()
+            requestUnknownSourcesPermission()
+            return
+        }
+        appUpdateRepository.launchApkInstaller(ready.verifiedApk).fold(
+            onSuccess = {
+                appendAudit(
+                    operationEs = "Instalador de actualización iniciado",
+                    operationEn = "System update installer launched",
+                    targetLabel = ready.verifiedApk.fileName,
+                    outcomeEs = "Entregado al instalador de paquetes de Android tras validar SHA‑256.",
+                    outcomeEn = "Handed off to Android package installer after SHA‑256 check."
+                )
+                internalState.update { it.copy(isUpdateDialogOpen = false) }
+            },
+            onFailure = { err ->
+                internalState.update {
+                    it.copy(
+                        statusBannerEs = "No se pudo abrir el instalador del APK: ${err.message}",
+                        statusBannerEn = "Could not launch APK installer: ${err.message}"
+                    )
+                }
+            }
+        )
+    }
+
     fun notifyCopiedMessage(es: String, en: String) {
         internalState.update { it.copy(statusBannerEs = es, statusBannerEn = en) }
     }
@@ -1366,6 +1652,8 @@ class TVeoCleanViewModel(
         activeConnectJob?.cancel()
         activeScanJob?.cancel()
         activeImportJob?.cancel()
+        activeUpdateCheckJob?.cancel()
+        activeUpdateDownloadJob?.cancel()
     }
 
     companion object {
@@ -1377,7 +1665,9 @@ class TVeoCleanViewModel(
             activeNetworkScanner: ActiveNetworkScanner,
             persistenceRepository: PersistenceRepository,
             gitHubPackImporter: GitHubPackImporter,
-            screenshotStorageDir: File
+            screenshotStorageDir: File,
+            appUpdateRepository: AppUpdateRepository,
+            autoCheckUpdatesOnLaunch: Boolean = true
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -1389,7 +1679,9 @@ class TVeoCleanViewModel(
                     activeNetworkScanner = activeNetworkScanner,
                     persistenceRepository = persistenceRepository,
                     gitHubPackImporter = gitHubPackImporter,
-                    screenshotStorageDir = screenshotStorageDir
+                    screenshotStorageDir = screenshotStorageDir,
+                    appUpdateRepository = appUpdateRepository,
+                    autoCheckUpdatesOnLaunch = autoCheckUpdatesOnLaunch
                 ) as T
             }
         }

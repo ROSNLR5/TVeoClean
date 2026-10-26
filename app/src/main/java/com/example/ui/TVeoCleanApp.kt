@@ -48,6 +48,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -60,6 +61,7 @@ import com.example.feature.home.OnboardingOverlay
 import com.example.feature.remote.TvPrivacyReportDialog
 import com.example.feature.remote.TvRemoteControlDialog
 import com.example.feature.restore.HistoryRestoreScreen
+import com.example.feature.settings.AppUpdateDialog
 import com.example.feature.settings.SettingsAboutScreen
 import com.example.feature.studio.StyleStudioScreen
 import com.example.ui.i18n.LocalAppStrings
@@ -129,6 +131,11 @@ fun TVeoCleanApp(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val appStrings = remember(uiState.preferences.language) {
         stringsForLanguage(uiState.preferences.language)
+    }
+
+    LifecycleResumeEffect(Unit) {
+        viewModel.refreshInstallPermissionState()
+        onPauseOrDispose { }
     }
 
     CompositionLocalProvider(LocalAppStrings provides appStrings) {
@@ -282,7 +289,9 @@ fun TVeoCleanApp(
                                     onNavigateToConnect = { navigateTopLevel(TVeoRoutes.ROUTE_MY_TV) },
                                     onNavigateToStudio = { navigateTopLevel(TVeoRoutes.ROUTE_STUDIO) },
                                     onNavigateToHistory = { navigateTopLevel(TVeoRoutes.ROUTE_HISTORY) },
-                                    onOpenRemoteControl = viewModel::openRemoteDialog
+                                    onOpenRemoteControl = viewModel::openRemoteDialog,
+                                    onOpenUpdateDialog = viewModel::openAppUpdateDialog,
+                                    onDismissUpdateBanner = viewModel::dismissHomeUpdateBanner
                                 )
                             }
                             composable(TVeoRoutes.ROUTE_MY_TV) {
@@ -355,11 +364,29 @@ fun TVeoCleanApp(
                                     onToggleReduceMotion = viewModel::setReduceMotion,
                                     onToggleAdvancedAdb = viewModel::setShowAdvancedAdbDetails,
                                     onReopenOnboarding = viewModel::reopenOnboarding,
+                                    onCheckForUpdates = { viewModel.checkForAppUpdates(silentOnNoNewRelease = false) },
+                                    onOpenUpdateDialog = viewModel::openAppUpdateDialog,
                                     onCopiedNotice = viewModel::notifyCopiedMessage
                                 )
                             }
                         }
                     }
+                }
+
+                // Official GitHub Releases APK Update Modal
+                if (uiState.isUpdateDialogOpen) {
+                    AppUpdateDialog(
+                        updateState = uiState.appUpdateState,
+                        language = uiState.preferences.language,
+                        apkConsentChecked = uiState.apkInstallConsentChecked,
+                        showTechnicalHashes = uiState.preferences.showAdvancedAdbDetails,
+                        onToggleConsent = viewModel::setApkInstallConsent,
+                        onStartDownload = viewModel::downloadLatestAppUpdate,
+                        onCancelDownload = viewModel::cancelAppUpdateDownload,
+                        onGrantInstallPermission = viewModel::requestUnknownSourcesPermission,
+                        onInstallVerifiedApk = viewModel::installVerifiedAppUpdate,
+                        onDismiss = viewModel::closeAppUpdateDialog
+                    )
                 }
 
                 // Live ADB Remote Control & Screenshot Modal
